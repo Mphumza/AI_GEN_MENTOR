@@ -3,13 +3,14 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 const genAI = new GoogleGenerativeAI('AIzaSyD_SFd6BZ7VCuMgyROPmx0bB3KGoesVcm8');
 const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
 
-async function fetchJobs() {
+// Fetch jobs from the API
+export async function fetchJobs() {
   try {
     const response = await fetch('https://arbeitnow.com/api/job-board-api', {
       headers: {
         'Accept': 'application/json',
-        'Origin': window.location.origin
-      }
+        'Origin': window.location.origin,
+      },
     });
 
     if (!response.ok) {
@@ -17,7 +18,7 @@ async function fetchJobs() {
     }
 
     const data = await response.json();
-    
+
     if (!data || !data.data || !Array.isArray(data.data)) {
       console.warn('Invalid API response format');
       return [];
@@ -33,40 +34,15 @@ async function fetchJobs() {
       requirements: Array.isArray(job.tags) ? job.tags : [],
       url: job.url || '#',
       remote: Boolean(job.remote),
-      salary: job.salary || 'Not specified'
+      salary: job.salary || 'Not specified',
     }));
   } catch (error) {
     console.error('Error fetching jobs:', error);
-    // Return some fallback jobs in case the API fails
-    return [
-      {
-        id: 'fallback-1',
-        title: 'Software Engineer',
-        company: 'Tech Company',
-        location: 'Remote',
-        type: 'Full-time',
-        description: 'Looking for a skilled software engineer to join our team.',
-        requirements: ['JavaScript', 'React', 'Node.js'],
-        url: '#',
-        remote: true,
-        salary: 'Competitive'
-      },
-      {
-        id: 'fallback-2',
-        title: 'Product Manager',
-        company: 'Innovation Corp',
-        location: 'New York',
-        type: 'Full-time',
-        description: 'Seeking an experienced product manager to lead our product development.',
-        requirements: ['Product Management', 'Agile', 'Leadership'],
-        url: '#',
-        remote: false,
-        salary: 'Based on experience'
-      }
-    ];
+    return [];
   }
 }
 
+// Analyze job match using Google Generative AI
 export async function analyzeJobMatch(cv, job) {
   try {
     const prompt = `
@@ -88,29 +64,72 @@ export async function analyzeJobMatch(cv, job) {
 
     const result = await model.generateContent(prompt);
     const response = await result.response;
-    return response.text();
+    const analysis = response.text();
+
+    // Extract match score
+    const matchScore = parseInt(analysis.match(/Match Score: (\d+)%/)?.[1] || '0', 10);
+
+    return {
+      analysis,
+      matchScore,
+    };
   } catch (error) {
     console.error('Job Match Analysis Error:', error);
-    return `
+    return {
+      analysis: `
 Match Score: N/A
 Key Matches: Unable to analyze matches at this time
 Gaps: Analysis temporarily unavailable
-Suggestions: Please try again later`;
+Suggestions: Please try again later`,
+      matchScore: 0,
+    };
   }
 }
 
+// Get recommended jobs based on CV data
 export async function getRecommendedJobs(cvData) {
   try {
     const jobs = await fetchJobs();
     const matchPromises = jobs.map(job => analyzeJobMatch(cvData, job));
     const matches = await Promise.all(matchPromises);
 
-    return jobs.map((job, index) => ({
+    // Combine job data with match analysis and score
+    const rankedJobs = jobs.map((job, index) => ({
       ...job,
-      matchAnalysis: matches[index]
+      ...matches[index],
     }));
+
+    // Sort jobs by match score in descending order
+    return rankedJobs.sort((a, b) => b.matchScore - a.matchScore);
   } catch (error) {
     console.error('Job Recommendations Error:', error);
     throw new Error('Failed to get job recommendations. Please try again later.');
   }
+}
+
+// JobMatches component to display job listings and match scores
+export function JobMatches({ jobs }) {
+  if (!jobs) return '<div>Loading jobs...</div>';
+
+  return `
+    <div class="p-4">
+      <h2 class="text-xl font-bold mb-4">Job Matches</h2>
+      <ul class="space-y-4">
+        ${jobs.map(job => `
+          <li class="border p-4 rounded-lg shadow-md">
+            <h3 class="text-lg font-semibold">${job.title}</h3>
+            <p class="text-sm text-gray-600">${job.company} - ${job.location}</p>
+            <p class="mt-2">${job.description.slice(0, 150)}...</p>
+            <div class="mt-2">
+              <h4 class="font-medium">Match Score: ${job.matchScore || 'N/A'}%</h4>
+              <p>${job.analysis || 'Analyzing match...'}</p>
+            </div>
+            <a href="${job.url}" target="_blank" class="text-blue-600 underline mt-4 block">
+              View Job
+            </a>
+          </li>
+        `).join('')}
+      </ul>
+    </div>
+  `;
 }

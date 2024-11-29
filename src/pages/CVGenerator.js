@@ -13,6 +13,7 @@ export function CVGenerator() {
 
           <form id="cv-form" class="bg-white rounded-lg shadow-lg p-8">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <!-- Personal Information -->
               <div class="col-span-2">
                 <label class="block text-lg font-medium text-gray-700 mb-2">Personal Information</label>
                 <div class="bg-purple-50 p-6 rounded-lg space-y-4">
@@ -30,6 +31,7 @@ export function CVGenerator() {
                 </div>
               </div>
 
+              <!-- Professional Profile -->
               <div class="col-span-2">
                 <label class="block text-lg font-medium text-gray-700 mb-2">Professional Profile</label>
                 <div class="bg-purple-50 p-6 rounded-lg space-y-4">
@@ -53,6 +55,7 @@ export function CVGenerator() {
                 </div>
               </div>
 
+              <!-- Skills & Expertise -->
               <div class="col-span-2">
                 <label class="block text-lg font-medium text-gray-700 mb-2">Skills & Expertise</label>
                 <div class="bg-purple-50 p-6 rounded-lg">
@@ -84,6 +87,25 @@ export function CVGenerator() {
                 </div>
               </div>
 
+              <!-- Job Preferences -->
+              <div class="col-span-2">
+                <label class="block text-lg font-medium text-gray-700 mb-2">Job Preferences</label>
+                <div class="bg-purple-50 p-6 rounded-lg space-y-4">
+                  <div>
+                    <label for="jobType" class="block text-sm font-medium text-gray-700">Preferred Job Type</label>
+                    <select id="jobType" required
+                      class="mt-1 block w-full px-4 py-3 rounded-lg border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 text-lg">
+                      <option value="full-time">Full-Time</option>
+                      <option value="part-time">Part-Time</option>
+                      <option value="freelance">Freelance</option>
+                      <option value="internship">Internship</option>
+                      <option value="contract">Contract</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Experience & Achievements -->
               <div class="col-span-2">
                 <label class="block text-lg font-medium text-gray-700 mb-2">Experience & Achievements</label>
                 <div class="bg-purple-50 p-6 rounded-lg space-y-4">
@@ -101,6 +123,7 @@ export function CVGenerator() {
                 </div>
               </div>
 
+              <!-- Education & Development -->
               <div class="col-span-2">
                 <label class="block text-lg font-medium text-gray-700 mb-2">Education & Development</label>
                 <div class="bg-purple-50 p-6 rounded-lg space-y-4">
@@ -125,11 +148,10 @@ export function CVGenerator() {
               </div>
             </div>
 
+            <!-- Submit Button -->
             <div class="mt-8">
               <button type="submit" 
-                class="w-full bg-purple-600 text-white py-4 px-6 rounded-lg text-lg font-semibold hover:bg-purple-700 transition-colors shadow-lg">
-                Generate Professional CV & Find Matching Jobs
-              </button>
+                class="w-full bg-purple-600 text-white py-4 px-6 rounded-lg text-lg font-semibold hover:bg-purple-700 transition duration-300">Generate CV</button>
             </div>
           </form>
         </div>

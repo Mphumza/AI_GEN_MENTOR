@@ -5,7 +5,7 @@ import { CVResult } from './src/pages/CVResult.js';
 import { JobMatches } from './src/pages/JobMatches.js';
 import { LoginForm, RegisterForm } from './src/components/AuthForms.js';
 import { handleSignIn, handleSignUp, handleSignOut } from './src/services/auth.js';
-import { generateCV } from './src/services/cv.js';
+import { generateCV, saveCV, validateFormData } from './src/services/cv.js';
 import MarkdownIt from 'markdown-it';
 
 const md = new MarkdownIt();
@@ -66,15 +66,14 @@ function renderPage() {
 }
 
 function initializeEventListeners() {
-  // Auth event listeners
   const loginBtn = document.getElementById('login');
   const signupBtn = document.getElementById('signup');
-  
+
   if (loginBtn) {
     loginBtn.addEventListener('click', () => {
       const modal = showAuthModal(LoginForm());
-      
       const loginForm = modal.querySelector('#login-form');
+
       loginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         try {
@@ -97,8 +96,8 @@ function initializeEventListeners() {
   if (signupBtn) {
     signupBtn.addEventListener('click', () => {
       const modal = showAuthModal(RegisterForm());
-      
       const registerForm = modal.querySelector('#register-form');
+
       registerForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         try {
@@ -124,7 +123,6 @@ function initializeEventListeners() {
     });
   }
 
-  // CV Form event listener
   const cvForm = document.getElementById('cv-form');
   if (cvForm) {
     cvForm.addEventListener('submit', async (e) => {
@@ -133,23 +131,30 @@ function initializeEventListeners() {
         const formData = {
           fullName: cvForm.querySelector('#fullName').value,
           contactInfo: cvForm.querySelector('#contactInfo').value,
-          cvType: cvForm.querySelector('#cvType').value,
+          jobType: cvForm.querySelector('#jobType').value || null,
           summary: cvForm.querySelector('#summary').value,
-          skills: Array.from(cvForm.querySelector('#skills').selectedOptions).map(opt => opt.value),
+          skills: Array.from(cvForm.querySelector('#skills').selectedOptions).map((opt) => opt.value),
           experience: cvForm.querySelector('#experience').value,
           education: cvForm.querySelector('#education').value,
-          certifications: cvForm.querySelector('#certifications').value,
-          awards: cvForm.querySelector('#awards').value
+          certifications: cvForm.querySelector('#certifications').value || null,
+          awards: cvForm.querySelector('#awards').value || null,
         };
+
+        validateFormData(formData);
+
+        if (!formData.jobType) {
+          alert('Please specify a job type to generate CV and find matching jobs.');
+          return;
+        }
 
         const result = await generateCV(formData);
         generatedCV = {
           markdown: result.cv,
           html: md.render(result.cv),
-          formData
+          formData,
         };
-        jobMatches = result.jobMatches;
-        
+        jobMatches = await fetchJobs(formData.jobType);
+
         currentPage = 'cv-result';
         renderPage();
       } catch (error) {
@@ -158,7 +163,6 @@ function initializeEventListeners() {
     });
   }
 
-  // CV Result page event listeners
   const viewMatchesBtn = document.getElementById('view-matches');
   if (viewMatchesBtn) {
     viewMatchesBtn.addEventListener('click', () => {
@@ -167,7 +171,6 @@ function initializeEventListeners() {
     });
   }
 
-  // Job Matches page event listeners
   const backToCVBtn = document.getElementById('back-to-cv');
   if (backToCVBtn) {
     backToCVBtn.addEventListener('click', () => {
@@ -177,11 +180,37 @@ function initializeEventListeners() {
   }
 }
 
-// Initialize the app when the DOM is loaded
+async function fetchJobs(jobType = 'software developer') {
+  const APP_ID = '50f33641';
+  const API_KEY = 'a4f4da670e1a3596320aee003e0a1327';
+  const API_URL = `https://api.adzuna.com/v1/api/jobs/za/search/1?app_id=${APP_ID}&app_key=${API_KEY}&results_per_page=10&what=${encodeURIComponent(jobType)}`;
+
+  try {
+    const response = await fetch(API_URL);
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch jobs: ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    return data.results.map((job) => ({
+      title: job.title,
+      company: job.company.display_name,
+      location: job.location.display_name,
+      description: job.description,
+      tags: job.category.label.split(', '),
+      url: job.redirect_url,
+    }));
+  } catch (error) {
+    console.error('Error fetching jobs:', error.message);
+    return [];
+  }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   renderPage();
 
-  // Listen for auth state changes
   auth.onAuthStateChanged((user) => {
     const authButtons = document.getElementById('auth-buttons');
     if (user) {
